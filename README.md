@@ -1,0 +1,4 @@
+hdocs
+=====
+
+Haskell docs daemon
