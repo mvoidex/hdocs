@@ -15,9 +15,12 @@ import HDocs.Args
 import HDocs.Module
 
 import System.Environment
+import System.IO
 
 main :: IO ()
 main = do
+	hSetEncoding stdout utf8
+
 	(named, cmds) <- fmap namedArgs getArgs
 	let
 		ghcOpts = fromMaybe [] $ arg_ named "-g"
