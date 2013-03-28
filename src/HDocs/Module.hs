@@ -42,7 +42,6 @@ withInitializedPackages cont = do
 		setSessionDynFlags flags
 		return flags
 	(flags', ps) <- initPackages flags
-	putStrLn $ "Packages loaded: " ++ intercalate ", " (map packageIdString ps)
 	cont flags'
 
 configSession :: [String] -> IO DynFlags
@@ -53,7 +52,6 @@ configSession ghcOpts = do
 		setSessionDynFlags flags'
 		return flags'
 	(result, ps) <- initPackages f
-	putStrLn $ "Packages loaded: " ++ intercalate ", " (map packageIdString ps)
 	return result
 
 -- | Docs state
@@ -65,7 +63,7 @@ runDocsM act = evalStateT act M.empty
 
 -- | Load symbol documentation
 symbolDocs :: DynFlags -> String -> String -> DocsM (Maybe String)
-symbolDocs d n m = do
+symbolDocs d m n = do
 	docs <- moduleDocs d m
 	return $ fmap formatDoc $ M.lookup n docs
 

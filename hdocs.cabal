@@ -20,7 +20,6 @@ executable hdocs
   hs-source-dirs: src
   other-modules:
     HDocs.Args
-    HDocs.Daemon
     HDocs.Module
   build-depends:
     base ==4.6.*,
