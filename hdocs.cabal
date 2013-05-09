@@ -15,14 +15,13 @@ category:            Development
 build-type:          Simple
 cabal-version:       >=1.8
 
-executable hdocs
-  main-is: hdocs.hs
+library
   hs-source-dirs: src
-  other-modules:
+  exposed-modules:
     HDocs.Args
     HDocs.Module
   build-depends:
-    base ==4.6.*,
+    base == 4.6.*,
     aeson == 0.6.*,
     bytestring == 0.10.*,
     ghc == 7.6.*,
@@ -35,3 +34,23 @@ executable hdocs
     process == 1.1.*,
     text == 0.11.*,
     mtl == 2.1.*
+
+executable hdocs
+  main-is: hdocs.hs
+  hs-source-dirs: tools
+  build-depends:
+    base == 4.6.*,
+    hdocs,
+    aeson == 0.6.*,
+    bytestring == 0.10.*,
+    containers == 0.5.*,
+    network == 2.4.*,
+    text == 0.11.*
+
+test-suite test
+  type: exitcode-stdio-1.0
+  main-is: Test.hs
+  hs-source-dirs: tests
+  build-depends:
+    base == 4.6.*,
+    hdocs

@@ -68,7 +68,7 @@ symbolDocs d m n = do
 	return $ fmap formatDoc $ M.lookup n docs
 
 -- | Load module documentation
-moduleDocs ::DynFlags -> String -> DocsM DocMap
+moduleDocs :: DynFlags -> String -> DocsM DocMap
 moduleDocs d m = do
 	loaded <- gets (M.lookup mname)
 	case loaded of
