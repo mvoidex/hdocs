@@ -1,5 +1,5 @@
 module HDocs.Module (
-	DocMap,
+	ModuleDocMap,
 	DocsM,
 	runDocsM,
 	-- * Get module docs
@@ -18,7 +18,6 @@ import Control.Monad.State
 
 import Data.Either
 import Data.Char (isSpace)
-import Data.List
 import Data.Map (Map)
 import qualified Data.Map as M
 
@@ -28,34 +27,33 @@ import DynFlags
 import GHC
 import GHC.Paths (libdir)
 import Module
-import Name (getOccString, occNameString, Name)
-import PackageConfig (PackageConfig, pkgUrl)
+import Name (getOccString, occNameString)
 import Packages
 
 -- | Documentations in module
-type DocMap = Map String (Doc String)
+type ModuleDocMap = Map String (Doc String)
 
 withInitializedPackages :: (DynFlags -> IO a) -> IO a
 withInitializedPackages cont = do
-	flags <- defaultErrorHandler defaultFatalMessager defaultFlushOut $ runGhc (Just libdir) $ do
-		flags <- getSessionDynFlags
-		setSessionDynFlags flags
-		return flags
-	(flags', ps) <- initPackages flags
-	cont flags'
+	fs <- defaultErrorHandler defaultFatalMessager defaultFlushOut $ runGhc (Just libdir) $ do
+		fs <- getSessionDynFlags
+		setSessionDynFlags fs
+		return fs
+	(fs', _) <- initPackages fs
+	cont fs'
 
 configSession :: [String] -> IO DynFlags
 configSession ghcOpts = do
 	f <- defaultErrorHandler defaultFatalMessager defaultFlushOut $ runGhc (Just libdir) $ do
-		flags <- getSessionDynFlags
-		(flags', _, _) <- parseDynamicFlags flags (map noLoc ghcOpts)
-		setSessionDynFlags flags'
-		return flags'
-	(result, ps) <- initPackages f
+		fs <- getSessionDynFlags
+		(fs', _, _) <- parseDynamicFlags fs (map noLoc ghcOpts)
+		setSessionDynFlags fs'
+		return fs'
+	(result, _) <- initPackages f
 	return result
 
 -- | Docs state
-type DocsM a = StateT (Map ModuleName DocMap) IO a
+type DocsM a = StateT (Map ModuleName ModuleDocMap) IO a
 
 -- | Run docs monad
 runDocsM :: DocsM a -> IO a
@@ -68,11 +66,11 @@ symbolDocs d m n = do
 	return $ fmap formatDoc $ M.lookup n docs
 
 -- | Load module documentation
-moduleDocs :: DynFlags -> String -> DocsM DocMap
+moduleDocs :: DynFlags -> String -> DocsM ModuleDocMap
 moduleDocs d m = do
 	loaded <- gets (M.lookup mname)
 	case loaded of
-		Just d -> return d
+		Just d' -> return d'
 		Nothing -> do
 			ifaces <- liftM (map snd) $ lift $ moduleInterface d mname
 			if null ifaces
@@ -95,17 +93,16 @@ moduleDocs d m = do
 moduleInterface :: DynFlags -> ModuleName -> IO [(PackageConfig, InstalledInterface)]
 moduleInterface d mname = do
 	result <- liftIO $ getPackagesByModule d mname
-	ps <- return $ either (const []) id result
-	liftM concat $ mapM packageInterface' ps
+	liftM concat $ mapM packageInterface' $ either (const []) id result
 	where
 		packageInterface' p = liftM (zip (repeat p)) $ packageInterface d mname p
 
 packageInterface :: DynFlags -> ModuleName -> PackageConfig -> IO [InstalledInterface]
-packageInterface d mname package = do
+packageInterface _ mname package = do
 	files <- getHaddockInterfaceByPackage package
 	case partitionEithers files of
 		([], []) -> return []
-		(errs@(_:_), _) -> return []
+		(_:_, _) -> return []
 		(_, files') -> return $ concatMap (filter ((== mname) . moduleName . instMod) . ifInstalledIfaces) files'
 
 -- | Format documentation to plain text.
@@ -121,7 +118,7 @@ formatDoc = trim . go where
 	go (DocEmphasis e) = "*" ++ go e ++ "*"
 	go (DocMonospaced e) = "`" ++ go e ++ "`"
 	go (DocUnorderedList i) = unlines (map (("* " ++) . go) i)
-	go (DocOrderedList i) = unlines (zipWith (\i x -> show i ++ ". " ++ go x) [1..] i)
+	go (DocOrderedList i) = unlines (zipWith (\i' x -> show i' ++ ". " ++ go x) ([1..] :: [Integer]) i)
 	go (DocDefList xs) = unlines (map (\(i,x) -> go i ++ ". " ++ go x) xs)
 	go (DocCodeBlock block) = unlines (map ("    " ++) (lines (go block))) ++ "\n"
 	go (DocHyperlink (Hyperlink url label)) = maybe url (\l -> l ++ "[" ++ url ++ "]") label
