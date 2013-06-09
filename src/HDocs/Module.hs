@@ -120,7 +120,7 @@ fileDocs = interfaceDocs (undefined :: Interface)
 docs :: [String] -> String -> DocsM ModuleDocMap
 docs opts m
 	| takeExtension m `elem` [".hs", ".lhs"] = fileDocs opts m
-	| otherwise = fileDocs opts m
+	| otherwise = moduleDocs opts m
 
 -- | Load installed interface
 moduleInterface :: DynFlags -> ModuleName -> IO [(PackageConfig, InstalledInterface)]
