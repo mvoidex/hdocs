@@ -1,20 +1,24 @@
 module HDocs.Module (
+	-- * Types
 	ModuleDocMap,
 	DocsM,
 	runDocsM,
-	-- * Get module docs
+
+	-- * Helpers
 	withInitializedPackages,
 	configSession,
-	symbolDocs,
-	moduleDocs,
 	moduleInterface,
 	packageInterface,
-	-- * Helpers
-	formatDoc
+	formatDoc,
+
+	-- * Get module docs
+	moduleDocs,
+	fileDocs
 	) where
 
 import Control.Arrow
 import Control.Monad.State
+import Control.Monad.Error
 
 import Data.Either
 import Data.Char (isSpace)
@@ -53,43 +57,63 @@ configSession ghcOpts = do
 	return result
 
 -- | Docs state
-type DocsM a = StateT (Map ModuleName ModuleDocMap) IO a
+type DocsM a = ErrorT String (StateT (Map String ModuleDocMap) IO) a
 
 -- | Run docs monad
-runDocsM :: DocsM a -> IO a
-runDocsM act = evalStateT act M.empty
+runDocsM :: DocsM a -> IO (Either String a)
+runDocsM act = evalStateT (runErrorT act) M.empty
 
--- | Load symbol documentation
-symbolDocs :: DynFlags -> String -> String -> DocsM (Maybe String)
-symbolDocs d m n = do
-	docs <- moduleDocs d m
-	return $ fmap formatDoc $ M.lookup n docs
+class DocInterface a where
+	getModule :: a -> Module
+	getDocMap :: a -> DocMap Name
+	getExports :: a -> [Name]
+	loadInterfaces :: [String] -> String -> IO [a]
 
--- | Load module documentation
-moduleDocs :: DynFlags -> String -> DocsM ModuleDocMap
-moduleDocs d m = do
-	loaded <- gets (M.lookup mname)
+instance DocInterface InstalledInterface where
+	getModule = instMod
+	getDocMap = instDocMap
+	getExports = instExports
+	loadInterfaces opts m = do
+		d <- configSession opts
+		liftM (map snd) $ moduleInterface d (mkModuleName m)
+
+instance DocInterface Interface where
+	getModule = ifaceMod
+	getDocMap = ifaceDocMap
+	getExports = const [] -- ifaceExports
+	loadInterfaces opts m = createInterfaces (noOutput ++ map Flag_OptGhc opts) [m] where
+		noOutput = [
+			Flag_Verbosity "0",
+			Flag_NoWarnings]
+
+-- | Load docs from interface
+interfaceDocs :: DocInterface a => a -> [String] -> String -> DocsM ModuleDocMap
+interfaceDocs h opts m = do
+	loaded <- gets (M.lookup m)
 	case loaded of
 		Just d' -> return d'
 		Nothing -> do
-			ifaces <- liftM (map snd) $ lift $ moduleInterface d mname
-			if null ifaces
-				then do
-					liftIO $ putStrLn $ "Unknown module " ++ m
-					return M.empty
-				else do
-					modify $ M.insert mname $ M.unions $ map interfaceNameMap ifaces
-					let
-						reexports = filter ((/= mname) . moduleName . nameModule) $ concatMap instExports ifaces
-					docs' <- liftM M.unions $ forM reexports $ \nm -> do
-						doc <- liftM (M.lookup (getOccString nm)) $ moduleDocs d (moduleNameString $ moduleName $ nameModule nm)
-						return $ maybe M.empty (M.singleton (getOccString nm)) doc
-					modify $ M.update (Just . M.union docs') mname
-					result <- gets $ M.lookup mname
-					maybe (return M.empty) return result
-	where
-		mname = mkModuleName m
+			ifaces <- liftM (`asTypeOf` [h]) $ liftIO $ loadInterfaces opts m
+			when (null ifaces) $ throwError $ "Unable to load interface for module: " ++ m
+			modify $ M.insert m $ M.unions $ map interfaceNameMap ifaces
+			let
+				reexports = filter ((/= m) . moduleNameString . moduleName . nameModule) $ concatMap getExports ifaces
+			docs' <- liftM M.unions $ forM reexports $ \nm -> do
+				doc <- liftM (M.lookup (getOccString nm)) $ interfaceDocs h opts (moduleNameString . moduleName . nameModule $ nm)
+				return $ maybe M.empty (M.singleton (getOccString nm)) doc
+			modify $ M.update (Just . M.union docs') m
+			result <- gets $ M.lookup m
+			maybe (throwError $ "Error loading module " ++ m) return result
 
+-- | Load module documentation
+moduleDocs :: [String] -> String -> DocsM ModuleDocMap
+moduleDocs = interfaceDocs (undefined :: InstalledInterface)
+
+-- | Load file documentation
+fileDocs :: [String] -> FilePath -> DocsM ModuleDocMap
+fileDocs = interfaceDocs (undefined :: Interface)
+
+-- | Load installed interface
 moduleInterface :: DynFlags -> ModuleName -> IO [(PackageConfig, InstalledInterface)]
 moduleInterface d mname = do
 	result <- liftIO $ getPackagesByModule d mname
@@ -135,8 +159,8 @@ formatDoc = trim . go where
 	trimSpaces (x:y:ss) = x : trimSpaces(y:ss)
 
 -- | Get a map from names to doc string
-interfaceNameMap :: InstalledInterface -> Map String (Doc String)
-interfaceNameMap = M.fromList . map (getOccString *** fmap getOccString) . M.toList . instDocMap
+interfaceNameMap :: DocInterface a => a -> Map String (Doc String)
+interfaceNameMap = M.fromList . map (getOccString *** fmap getOccString) . M.toList . getDocMap
 
 -- | Search for a module's package with suggestions if not found
 getPackagesByModule :: DynFlags -> ModuleName -> IO (Either [Module] [PackageConfig])
