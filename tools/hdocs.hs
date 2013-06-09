@@ -31,7 +31,7 @@ instance Monoid HDocsOptions where
 opts :: [OptDescr HDocsOptions]
 opts = [
 	Option ['j'] ["json"] (NoArg $ HDocsOptions True []) "output json",
-	Option ['g'] ["--ghc"] (ReqArg (\s -> HDocsOptions False [s]) "GHC_OPT") "option to pass to GHC"]
+	Option ['g'] ["ghc"] (ReqArg (\s -> HDocsOptions False [s]) "GHC_OPT") "option to pass to GHC"]
 
 main :: IO ()
 main = do
