@@ -13,7 +13,8 @@ module HDocs.Module (
 
 	-- * Get module docs
 	moduleDocs,
-	fileDocs
+	fileDocs,
+	docs
 	) where
 
 import Control.Arrow
@@ -26,6 +27,8 @@ import Data.Map (Map)
 import qualified Data.Map as M
 
 import Documentation.Haddock
+
+import System.FilePath (takeExtension)
 
 import DynFlags
 import GHC
@@ -112,6 +115,12 @@ moduleDocs = interfaceDocs (undefined :: InstalledInterface)
 -- | Load file documentation
 fileDocs :: [String] -> FilePath -> DocsM ModuleDocMap
 fileDocs = interfaceDocs (undefined :: Interface)
+
+-- | Load docs for file or module
+docs :: [String] -> String -> DocsM ModuleDocMap
+docs opts m
+	| takeExtension m `elem` [".hs", ".lhs"] = fileDocs opts m
+	| otherwise = fileDocs opts m
 
 -- | Load installed interface
 moduleInterface :: DynFlags -> ModuleName -> IO [(PackageConfig, InstalledInterface)]

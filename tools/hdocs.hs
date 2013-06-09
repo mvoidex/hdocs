@@ -55,10 +55,9 @@ main = do
 		showResult True rs = toStr $ encode rs
 
 		loadDocs m f = do
-			docs <- runDocsM (loadDocs' (optionGHC cfg) m)
+			docs <- runDocsM (docs (optionGHC cfg) m)
 			putStrLn $ either (showError isJson) (showResult isJson) (fmap (M.map formatDoc) docs >>= f)
 			where
-				loadDocs' = if takeExtension m == ".hs" then fileDocs else moduleDocs
 				isJson = optionJson cfg
 
 	case cmds of
