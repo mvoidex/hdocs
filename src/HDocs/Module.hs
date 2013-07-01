@@ -18,6 +18,7 @@ module HDocs.Module (
 	) where
 
 import Control.Arrow
+import Control.Exception
 import Control.Monad.State
 import Control.Monad.Error
 
@@ -33,6 +34,7 @@ import System.FilePath (takeExtension)
 import DynFlags
 import GHC
 import GHC.Paths (libdir)
+import qualified GhcMonad as GHC (liftIO)
 import Module
 import Name (getOccString, occNameString)
 import Packages
@@ -40,31 +42,34 @@ import Packages
 -- | Documentations in module
 type ModuleDocMap = Map String (Doc String)
 
-withInitializedPackages :: (DynFlags -> IO a) -> IO a
-withInitializedPackages cont = do
-	fs <- defaultErrorHandler defaultFatalMessager defaultFlushOut $ runGhc (Just libdir) $ do
+withInitializedPackages :: [String] -> (DynFlags -> IO a) -> IO a
+withInitializedPackages ghcOpts cont = do
+	runGhc (Just libdir) $ do
 		fs <- getSessionDynFlags
-		setSessionDynFlags fs
-		return fs
-	(fs', _) <- initPackages fs
-	cont fs'
+		defaultCleanupHandler fs $ do
+			(fs', _, _) <- parseDynamicFlags fs (map noLoc ghcOpts)
+			setSessionDynFlags fs'
+			(result, _) <- GHC.liftIO $ initPackages fs
+			GHC.liftIO $ cont result
 
 configSession :: [String] -> IO DynFlags
 configSession ghcOpts = do
-	f <- defaultErrorHandler defaultFatalMessager defaultFlushOut $ runGhc (Just libdir) $ do
+	runGhc (Just libdir) $ do
 		fs <- getSessionDynFlags
-		(fs', _, _) <- parseDynamicFlags fs (map noLoc ghcOpts)
-		setSessionDynFlags fs'
-		return fs'
-	(result, _) <- initPackages f
-	return result
+		defaultCleanupHandler fs $ do
+			(fs', _, _) <- parseDynamicFlags fs (map noLoc ghcOpts)
+			setSessionDynFlags fs'
+			(result, _) <- GHC.liftIO $ initPackages fs'
+			return result
 
 -- | Docs state
 type DocsM a = ErrorT String (StateT (Map String ModuleDocMap) IO) a
 
 -- | Run docs monad
 runDocsM :: DocsM a -> IO (Either String a)
-runDocsM act = evalStateT (runErrorT act) M.empty
+runDocsM act = catch (evalStateT (runErrorT act) M.empty) onError where
+	onError :: SomeException -> IO (Either String a)
+	onError = return . Left . show
 
 class DocInterface a where
 	getModule :: a -> Module
@@ -76,18 +81,19 @@ instance DocInterface InstalledInterface where
 	getModule = instMod
 	getDocMap = instDocMap
 	getExports = instExports
-	loadInterfaces opts m = do
-		d <- configSession opts
+	loadInterfaces opts m = withInitializedPackages opts $ \d ->
 		liftM (map snd) $ moduleInterface d (mkModuleName m)
 
 instance DocInterface Interface where
 	getModule = ifaceMod
 	getDocMap = ifaceDocMap
 	getExports = const [] -- ifaceExports
-	loadInterfaces opts m = createInterfaces (noOutput ++ map Flag_OptGhc opts) [m] where
-		noOutput = [
-			Flag_Verbosity "0",
-			Flag_NoWarnings]
+	loadInterfaces opts m = do
+		createInterfaces (noOutput ++ map Flag_OptGhc opts) [m]
+		where
+			noOutput = [
+				Flag_Verbosity "0",
+				Flag_NoWarnings]
 
 -- | Load docs from interface
 interfaceDocs :: DocInterface a => a -> [String] -> String -> DocsM ModuleDocMap

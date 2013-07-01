@@ -4,7 +4,17 @@
 name:                hdocs
 version:             0.1.0.0
 synopsis:            Haskell docs daemon
--- description:         
+description:
+  Tool and library to get docs for installed packages and source files.
+  Can return result in JSON format.
+  .
+  @Usage:
+  hdocs docs <module> - get docs for module/file
+  hdocs docs <module> <name> - get docs for name in module/file
+  flags
+  -j          --json         output json
+  -g GHC_OPT  --ghc=GHC_OPT  option to pass to GHC
+  @
 homepage:            https://github.com/mvoidex/hdocs
 license:             BSD3
 license-file:        LICENSE
