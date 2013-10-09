@@ -3,6 +3,7 @@ module Main (
 	) where
 
 import Data.Aeson
+import Data.Aeson.Encode.Pretty (encodePretty)
 import Data.ByteString.Lazy (ByteString, toStrict)
 import Data.Maybe
 import Data.Map (Map)
@@ -21,16 +22,16 @@ import System.FilePath
 import System.IO
 
 data HDocsOptions = HDocsOptions {
-	optionJson :: Bool,
+	optionPretty :: Bool,
 	optionGHC :: [String] }
 
 instance Monoid HDocsOptions where
 	mempty = HDocsOptions False []
-	mappend l r = HDocsOptions (optionJson l || optionJson r) (optionGHC l ++ optionGHC r)
+	mappend l r = HDocsOptions (optionPretty l || optionPretty r) (optionGHC l ++ optionGHC r)
 
 opts :: [OptDescr HDocsOptions]
 opts = [
-	Option ['j'] ["json"] (NoArg $ HDocsOptions True []) "output json",
+	Option [] ["pretty"] (NoArg $ HDocsOptions True []) "pretty JSON output",
 	Option ['g'] ["ghc"] (ReqArg (\s -> HDocsOptions False [s]) "GHC_OPT") "option to pass to GHC"]
 
 main :: IO ()
@@ -41,34 +42,31 @@ main = do
 
 	let
 		cfg = mconcat cfgs
+		isPretty = optionPretty cfg
 
-		toStr :: ByteString -> String
-		toStr = T.unpack . T.decodeUtf8 . toStrict
+		toStr :: ToJSON a => a -> String
+		toStr = T.unpack . T.decodeUtf8 . toStrict . encode' where
+			encode'
+				| isPretty = encodePretty
+				| otherwise = encode
 
-		showError :: Bool -> String -> String
-		showError False err = "Error: " ++ err
-		showError True err = toStr $ encode [
+		jsonError :: String -> Value
+		jsonError err = object [
 			T.pack "error" .= err]
-		showResult :: Bool -> Map String String -> String
-		showResult False rs = unlines $ concatMap (uncurry showResult') (M.toList rs) where
-			showResult' nm d = [nm ++ ":", d, ""]
-		showResult True rs = toStr $ encode rs
 
 		loadDocs m f = do
 			docs <- runDocsM (docs (optionGHC cfg) m)
-			putStrLn $ either (showError isJson) (showResult isJson) (fmap (M.map formatDoc) docs >>= f)
-			where
-				isJson = optionJson cfg
+			putStrLn $ either (toStr . jsonError) toStr (fmap (M.map formatDoc) docs >>= f)
 
 	case cmds of
-		["docs", m] -> loadDocs m return
-		["docs", m, n] -> loadDocs m $ maybe (Left $ "Symbol '" ++ n ++ "' not found") (return . M.singleton n) . M.lookup n
+		[m] -> loadDocs m return
+		[m, n] -> loadDocs m $ maybe (Left $ "Symbol '" ++ n ++ "' not found") (return . M.singleton n) . M.lookup n
 		_ -> printUsage
 
 printUsage :: IO ()
 printUsage = mapM_ putStrLn [
 	"Usage:",
-	"  hdocs docs <module> - get docs for module/file",
-	"  hdocs docs <module> <name> - get docs for name in module/file",
+	"  hdocs <module> - get docs for module/file",
+	"  hdocs <module> <name> - get docs for name in module/file",
 	"",
 	usageInfo "flags" opts]
