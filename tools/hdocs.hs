@@ -2,6 +2,7 @@ module Main (
 	main
 	) where
 
+import Control.Monad.Error
 import Data.Aeson
 import Data.Aeson.Encode.Pretty (encodePretty)
 import Data.ByteString.Lazy (ByteString, toStrict)
@@ -14,6 +15,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import Network (PortNumber)
 
+import HDocs.Haddock
 import HDocs.Module
 
 import System.Console.GetOpt
@@ -58,7 +60,12 @@ main = do
 			docs <- runDocsM (docs (optionGHC cfg) m)
 			putStrLn $ either (toStr . jsonError) toStr (fmap (M.map formatDoc) docs >>= f)
 
+		dumpDocs = do
+			docs <- runErrorT $ readInstalledDocs (optionGHC cfg)
+			putStrLn $ either (toStr . jsonError) toStr (fmap (M.map (M.map formatDoc)) docs)
+
 	case cmds of
+		["dump"] -> dumpDocs
 		[m] -> loadDocs m return
 		[m, n] -> loadDocs m $ maybe (Left $ "Symbol '" ++ n ++ "' not found") (return . M.singleton n) . M.lookup n
 		_ -> printUsage
@@ -68,5 +75,6 @@ printUsage = mapM_ putStrLn [
 	"Usage:",
 	"  hdocs <module> - get docs for module/file",
 	"  hdocs <module> <name> - get docs for name in module/file",
+	"  hdocs dump - dump all installed docs",
 	"",
 	usageInfo "flags" opts]

@@ -1,12 +1,9 @@
 module HDocs.Module (
 	-- * Types
-	ModuleDocMap,
 	DocsM,
 	runDocsM,
 
 	-- * Helpers
-	withInitializedPackages,
-	configSession,
 	moduleInterface,
 	packageInterface,
 	formatDoc,
@@ -14,7 +11,9 @@ module HDocs.Module (
 	-- * Get module docs
 	moduleDocs,
 	fileDocs,
-	docs
+	docs,
+
+	module HDocs.Base
 	) where
 
 import Control.Arrow
@@ -39,28 +38,7 @@ import Module
 import Name (getOccString, occNameString)
 import Packages
 
--- | Documentations in module
-type ModuleDocMap = Map String (Doc String)
-
-withInitializedPackages :: [String] -> (DynFlags -> IO a) -> IO a
-withInitializedPackages ghcOpts cont = do
-	runGhc (Just libdir) $ do
-		fs <- getSessionDynFlags
-		defaultCleanupHandler fs $ do
-			(fs', _, _) <- parseDynamicFlags fs (map noLoc ghcOpts)
-			setSessionDynFlags fs'
-			(result, _) <- GHC.liftIO $ initPackages fs
-			GHC.liftIO $ cont result
-
-configSession :: [String] -> IO DynFlags
-configSession ghcOpts = do
-	runGhc (Just libdir) $ do
-		fs <- getSessionDynFlags
-		defaultCleanupHandler fs $ do
-			(fs', _, _) <- parseDynamicFlags fs (map noLoc ghcOpts)
-			setSessionDynFlags fs'
-			(result, _) <- GHC.liftIO $ initPackages fs'
-			return result
+import HDocs.Base
 
 -- | Docs state
 type DocsM a = ErrorT String (StateT (Map String ModuleDocMap) IO) a
