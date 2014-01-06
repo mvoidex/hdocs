@@ -28,7 +28,7 @@ withInitializedPackages ghcOpts cont = do
 		defaultCleanupHandler fs $ do
 			(fs', _, _) <- parseDynamicFlags fs (map noLoc ghcOpts)
 			setSessionDynFlags fs'
-			(result, _) <- GHC.liftIO $ initPackages fs
+			(result, _) <- GHC.liftIO $ initPackages fs'
 			GHC.liftIO $ cont result
 
 -- | Config GHC session
