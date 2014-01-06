@@ -56,18 +56,21 @@ main = do
 		jsonError err = object [
 			T.pack "error" .= err]
 
-		loadDocs m f = do
-			docs <- runDocsM (docs (optionGHC cfg) m)
-			putStrLn $ either (toStr . jsonError) toStr (fmap (M.map formatDoc) docs >>= f)
+		run :: ToJSON a => ErrorT String IO a -> IO ()
+		run act = runErrorT act >>= putStrLn . either (toStr . jsonError) toStr
 
-		dumpDocs = do
-			docs <- runErrorT $ readInstalledDocs (optionGHC cfg)
-			putStrLn $ either (toStr . jsonError) toStr (fmap (M.map (M.map formatDoc)) docs)
+		loadDocs :: String -> ErrorT String IO ModuleDocMap
+		loadDocs m
+			| takeExtension m == ".hs" = liftM snd $ readSource (optionGHC cfg) m
+			| otherwise = moduleDocs (optionGHC cfg) m
 
 	case cmds of
-		["dump"] -> dumpDocs
-		[m] -> loadDocs m return
-		[m, n] -> loadDocs m $ maybe (Left $ "Symbol '" ++ n ++ "' not found") (return . M.singleton n) . M.lookup n
+		["dump", "r"] -> run $ liftM (M.map formatDocs) $ installedDocs (optionGHC cfg)
+		["dump"] -> run $ liftM (M.map formatDocs) $ readInstalledDocs (optionGHC cfg)
+		[m] -> run $ liftM formatDocs $ loadDocs m
+		[m, n] -> run $ liftM formatDocs $ do
+			docs <- loadDocs m
+			maybe (throwError $ "Symbol '" ++ n ++ "' not found") (return . M.singleton n) $ M.lookup n docs
 		_ -> printUsage
 
 printUsage :: IO ()
@@ -75,6 +78,6 @@ printUsage = mapM_ putStrLn [
 	"Usage:",
 	"  hdocs <module> - get docs for module/file",
 	"  hdocs <module> <name> - get docs for name in module/file",
-	"  hdocs dump - dump all installed docs",
+	"  hdocs dump [r] - dump all installed docs, if [r], find docs for reexported declarations",
 	"",
 	usageInfo "flags" opts]

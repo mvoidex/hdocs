@@ -65,4 +65,5 @@ test-suite test
   build-depends:
     base == 4.6.*,
     hdocs,
-    containers == 0.5.*
+    containers == 0.5.*,
+    mtl == 2.1.*

@@ -3,19 +3,25 @@ module Main (
 	) where
 
 import Control.Monad
+import Control.Monad.Error
 import qualified Data.Map as M
 
 import System.Exit
 
 import HDocs.Module
+import HDocs.Haddock
 
 -- | This is main function
 main :: IO ()
-main = do
-	sdocs <- runDocsM (fileDocs [] "tests/Test.hs")
-	tdocs <- either (\e -> putStrLn e >> exitFailure) (return . M.lookup "main") sdocs
-	when (fmap formatDoc tdocs /= Just "This is main function") exitFailure
-	edocs <- runDocsM (moduleDocs [] "Prelude")
-	mdocs <- either (\e -> putStrLn e >> exitFailure) (return . M.lookup "null") edocs
-	when (fmap formatDoc mdocs /= Just "Test whether a list is empty.") exitFailure
-	exitSuccess
+main = runErrorT main' >>= either (\e -> putStrLn e >> exitFailure) (\_ -> exitSuccess) where
+	main' :: ErrorT String IO ()
+	main' = do
+		sdocs <- fmt $ liftM snd $ readSource [] "tests/Test.hs"
+		check "Documentation for main"
+			(M.lookup "main" sdocs == Just "This is main function")
+		edocs <- fmt $ moduleDocs [] "Prelude"
+		check "Documentation for Prelude.null"
+			(M.lookup "null" edocs == Just "Test whether a list is empty.")
+		where
+			check str p = if p then return () else throwError str
+			fmt = liftM formatDocs
