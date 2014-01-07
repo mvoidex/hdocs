@@ -5,22 +5,18 @@ module Main (
 import Control.Monad.Error
 import Data.Aeson
 import Data.Aeson.Encode.Pretty (encodePretty)
-import Data.ByteString.Lazy (ByteString, toStrict)
-import Data.Maybe
-import Data.Map (Map)
+import Data.ByteString.Lazy (toStrict)
 import qualified Data.Map as M
-import Data.Monoid
-import Data.String
-import qualified Data.Text as T
-import qualified Data.Text.Encoding as T
-import Network (PortNumber)
+import Data.Monoid (Monoid(..))
+import qualified Data.Text as T (unpack, pack)
+import qualified Data.Text.Encoding as T (decodeUtf8)
 
 import HDocs.Haddock
 import HDocs.Module
 
 import System.Console.GetOpt
-import System.Environment
-import System.FilePath
+import System.Environment (getArgs)
+import System.FilePath (takeExtension)
 import System.IO
 
 data HDocsOptions = HDocsOptions {
