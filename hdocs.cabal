@@ -1,15 +1,18 @@
 name:                hdocs
-version:             0.3.0.0
+version:             0.3.0.1
 synopsis:            Haskell docs tool
 description:
   Tool and library to get docs for installed packages and source files.
   Can return result in JSON format.
+  Can dump docs for all installed modules
   .
   @Usage:
   hdocs <module> - get docs for module/file
   hdocs <module> <name> - get docs for name in module/file
+  hdocs dump [r] - dump all installed docs, if [r], find docs for reexported declarations
+
   flags
-  --pretty          pretty JSON output
+  --pretty       pretty JSON output
   -g GHC_OPT  --ghc=GHC_OPT  option to pass to GHC
   @
 homepage:            https://github.com/mvoidex/hdocs
