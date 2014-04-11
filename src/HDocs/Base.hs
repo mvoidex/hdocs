@@ -6,6 +6,7 @@ module HDocs.Base (
 
 import Data.Char (isSpace)
 import Data.Map (Map)
+import Data.Foldable (foldMap)
 import qualified Data.Map as M
 
 import Documentation.Haddock
@@ -45,6 +46,7 @@ configSession ghcOpts = do
 -- | Format documentation to plain text.
 formatDoc :: Doc String -> String
 formatDoc = trim . go where
+	go :: Doc String -> String
 	go DocEmpty = ""
 	go (DocAppend a b) = go a ++ go b
 	go (DocString str) = trimSpaces str
@@ -52,8 +54,10 @@ formatDoc = trim . go where
 	go (DocIdentifier i) = i
 	go (DocIdentifierUnchecked (mname, occname)) = moduleNameString mname ++ "." ++ occNameString occname
 	go (DocModule m) = m
+	go (DocWarning w) = go w
 	go (DocEmphasis e) = "*" ++ go e ++ "*"
 	go (DocMonospaced e) = "`" ++ go e ++ "`"
+	go (DocBold b) = "*" ++ go b ++ "*"
 	go (DocUnorderedList i) = unlines (map (("* " ++) . go) i)
 	go (DocOrderedList i) = unlines (zipWith (\i' x -> show i' ++ ". " ++ go x) ([1..] :: [Integer]) i)
 	go (DocDefList xs) = unlines (map (\(i,x) -> go i ++ ". " ++ go x) xs)
@@ -61,10 +65,12 @@ formatDoc = trim . go where
 	go (DocHyperlink (Hyperlink url label)) = maybe url (\l -> l ++ "[" ++ url ++ "]") label
 	go (DocPic pic) = show pic
 	go (DocAName name) = name
+	go (DocProperty prop) = prop
 	go (DocExamples exs) = unlines (map formatExample exs)
+	go (DocHeader h) = foldMap go h
 
 	formatExample :: Example -> String
-	formatExample (Example expr result) = "    > " ++ expr ++ unlines (map ("    " ++) result)
+	formatExample (Example expr result) = ">>> " ++ expr ++ "\n" ++ unlines result
 
 	trimSpaces [] = []
 	trimSpaces [s] = [s]

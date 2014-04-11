@@ -1,5 +1,5 @@
 name:                hdocs
-version:             0.4.0.2
+version:             0.4.0.3
 synopsis:            Haskell docs tool
 description:
   Tool and library to get docs for installed packages and source files.
