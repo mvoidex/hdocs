@@ -59,7 +59,7 @@ formatDoc = trim . go where
 	go (DocDefList xs) = unlines (map (\(i,x) -> go i ++ ". " ++ go x) xs)
 	go (DocCodeBlock block) = unlines (map ("    " ++) (lines (go block))) ++ "\n"
 	go (DocHyperlink (Hyperlink url label)) = maybe url (\l -> l ++ "[" ++ url ++ "]") label
-	go (DocPic pic) = pic
+	go (DocPic pic) = show pic
 	go (DocAName name) = name
 	go (DocExamples exs) = unlines (map formatExample exs)
 
