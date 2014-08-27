@@ -63,7 +63,9 @@ main = do
 	case cmds of
 		["dump", "r"] -> run $ liftM (M.map formatDocs) $ installedDocs (optionGHC cfg)
 		["dump"] -> run $ liftM (M.map formatDocs) $ readInstalledDocs (optionGHC cfg)
-		[m] -> run $ liftM formatDocs $ loadDocs m
+		[m] -> run $ liftM formatDocs $ loadDocs m `mplus` do
+			mdocs <- installedDocs (optionGHC cfg)
+			return $ M.mapMaybe (M.lookup m) mdocs
 		[m, n] -> run $ liftM formatDocs $ do
 			docs <- loadDocs m
 			maybe (throwError $ "Symbol '" ++ n ++ "' not found") (return . M.singleton n) $ M.lookup n docs
