@@ -1,6 +1,8 @@
 hdocs
 =====
 
+[![Hackage version](https://img.shields.io/hackage/v/hdocs.svg?style=flat)](http://hackage.haskell.org/package/hdocs) [![Build Status](https://travis-ci.org/mvoidex/hdocs.png)](https://travis-ci.org/mvoidex/hdocs)
+
 Haskell docs util<br>
 Unlike haskell-docs it can dump docs about module in JSON and allows '-g' option to configure GHC<br>
 It can also dump all installed docs<br>
