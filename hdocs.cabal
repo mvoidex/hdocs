@@ -65,6 +65,8 @@ test-suite test
   type: exitcode-stdio-1.0
   main-is: Test.hs
   hs-source-dirs: tests
+  other-modules:
+    HelpTest
   build-depends:
     base >= 4.7 && < 5,
     hdocs,
