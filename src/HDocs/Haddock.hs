@@ -46,7 +46,7 @@ readHaddock f = M.fromList . map installedInterfaceDocs <$> readInstalledInterfa
 -- | Read docs for haskell module
 readSource :: [String] -> FilePath -> ErrorT String IO (String, ModuleDocMap)
 readSource opts f = do
-	ifaces <- liftIO $ createInterfaces ([Flag_Verbosity "0", Flag_NoWarnings] ++ map Flag_OptGhc opts) [f]
+	ifaces <- liftError $ liftIO $ createInterfaces ([Flag_Verbosity "0", Flag_NoWarnings] ++ map Flag_OptGhc opts) [f]
 	iface <- maybe (throwError $ "Failed to load docs for " ++ f) return $ listToMaybe ifaces
 	return $ interfaceDocs iface
 
