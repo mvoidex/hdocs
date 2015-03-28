@@ -2,7 +2,7 @@ module Main (
 	main
 	) where
 
-import Control.Monad.Error
+import Control.Monad.Except
 import Data.Aeson
 import Data.Aeson.Encode.Pretty (encodePretty)
 import Data.ByteString.Lazy (toStrict)
@@ -52,10 +52,10 @@ main = do
 		jsonError err = object [
 			T.pack "error" .= err]
 
-		run :: ToJSON a => ErrorT String IO a -> IO ()
-		run act = runErrorT act >>= putStrLn . either (toStr . jsonError) toStr
+		run :: ToJSON a => ExceptT String IO a -> IO ()
+		run act = runExceptT act >>= putStrLn . either (toStr . jsonError) toStr
 
-		loadDocs :: String -> ErrorT String IO ModuleDocMap
+		loadDocs :: String -> ExceptT String IO ModuleDocMap
 		loadDocs m
 			| takeExtension m == ".hs" = liftM snd $ readSource (optionGHC cfg) m
 			| otherwise = moduleDocs (optionGHC cfg) m
