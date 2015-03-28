@@ -1,5 +1,5 @@
 name:                hdocs
-version:             0.4.1.2
+version:             0.4.1.3
 synopsis:            Haskell docs tool
 description:
   Tool and library to get docs for installed packages and source files.
@@ -26,6 +26,7 @@ cabal-version:       >=1.8
 
 library
   hs-source-dirs: src
+  ghc-options: -fno-warn-tabs
   exposed-modules:
     HDocs.Base
     HDocs.Haddock
@@ -37,7 +38,7 @@ library
     filepath >= 1.3.0,
     ghc >= 7.8.1,
     ghc-paths >= 0.1.0,
-    haddock-api >= 2.15.0,
+    haddock-api >= 2.15.0 && < 2.16.0,
     containers >= 0.5.0,
     transformers >= 0.3.0,
     MonadCatchIO-transformers >= 0.3.0,
@@ -49,6 +50,7 @@ library
 executable hdocs
   main-is: hdocs.hs
   hs-source-dirs: tools
+  ghc-options: -fno-warn-tabs
   build-depends:
     base >= 4.7 && < 5,
     hdocs,
@@ -65,6 +67,7 @@ test-suite test
   type: exitcode-stdio-1.0
   main-is: Test.hs
   hs-source-dirs: tests
+  ghc-options: -fno-warn-tabs
   other-modules:
     HelpTest
   build-depends:
