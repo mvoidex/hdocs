@@ -2,7 +2,7 @@ module HDocs.Haddock (
 	-- * Documentation functions
 	readInstalledDocs,
 	readHaddock,
-	readSource,
+	readSources, readSources_, readSource,
 
 	-- * Extract docs
 	installedInterfaceDocs, installedInterfacesDocs,
@@ -44,12 +44,19 @@ readInstalledDocs opts = do
 readHaddock :: FilePath -> ExceptT String IO (Map String ModuleDocMap)
 readHaddock f = M.fromList . map installedInterfaceDocs <$> readInstalledInterfaces f
 
+-- | Read docs for haskell modules
+readSources :: [String] -> [FilePath] -> ExceptT String IO (Map String ModuleDocMap)
+readSources opts = liftM M.fromList . readSources_ opts
+
+-- | Read docs for haskell modules
+readSources_ :: [String] -> [FilePath] -> ExceptT String IO [(String, ModuleDocMap)]
+readSources_ opts fs = do
+	ifaces <- liftError $ liftIO $ createInterfaces ([Flag_Verbosity "0", Flag_NoWarnings] ++ map Flag_OptGhc opts) fs
+	return $ map interfaceDocs ifaces
+
 -- | Read docs for haskell module
 readSource :: [String] -> FilePath -> ExceptT String IO (String, ModuleDocMap)
-readSource opts f = do
-	ifaces <- liftError $ liftIO $ createInterfaces ([Flag_Verbosity "0", Flag_NoWarnings] ++ map Flag_OptGhc opts) [f]
-	iface <- maybe (throwError $ "Failed to load docs for " ++ f) return $ listToMaybe ifaces
-	return $ interfaceDocs iface
+readSource opts f = liftM listToMaybe (readSources_ opts [f]) >>= maybe (throwError $ "Failed to load docs for " ++ f) return
 
 -- | Get docs for 'InstalledInterface'
 installedInterfaceDocs :: InstalledInterface -> (String, ModuleDocMap)
