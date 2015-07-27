@@ -2,7 +2,7 @@ module HDocs.Haddock (
 	-- * Documentation functions
 	readInstalledDocs,
 	readHaddock,
-	readSources, readSources_, readSource,
+	readSources, readSources_, readSource, readSourcesGhc,
 
 	-- * Extract docs
 	installedInterfaceDocs, installedInterfacesDocs,
@@ -13,7 +13,10 @@ module HDocs.Haddock (
 	readInstalledInterfaces, readPackageInterfaces,
 	lookupDoc, lookupNameDoc,
 
-	module HDocs.Base
+	module HDocs.Base,
+
+	Ghc,
+	module Control.Monad.Except
 	) where
 
 import Control.Applicative
@@ -24,9 +27,12 @@ import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Maybe (listToMaybe)
 
+import Distribution.Verbosity (silent)
 import Documentation.Haddock
 import Documentation.Haddock.Types (_doc)
 
+import Exception (gtry)
+import GHC (Ghc)
 import DynFlags
 import Module
 import Name
@@ -51,12 +57,18 @@ readSources opts = liftM M.fromList . readSources_ opts
 -- | Read docs for haskell modules
 readSources_ :: [String] -> [FilePath] -> ExceptT String IO [(String, ModuleDocMap)]
 readSources_ opts fs = do
-	ifaces <- liftError $ liftIO $ createInterfaces ([Flag_Verbosity "0", Flag_NoWarnings] ++ map Flag_OptGhc opts) fs
+	ifaces <- liftError $ liftIO $ createInterfaces ([Flag_Verbosity "0", Flag_NoWarnings, Flag_UseUnicode] ++ map Flag_OptGhc opts) fs
 	return $ map interfaceDocs ifaces
 
 -- | Read docs for haskell module
 readSource :: [String] -> FilePath -> ExceptT String IO (String, ModuleDocMap)
 readSource opts f = liftM listToMaybe (readSources_ opts [f]) >>= maybe (throwError $ "Failed to load docs for " ++ f) return
+
+-- | Read docs for source in Ghc monad
+readSourcesGhc :: [String] -> [FilePath] -> ExceptT String Ghc [(String, ModuleDocMap)]
+readSourcesGhc opts fs = ExceptT $ liftM (left (show :: SomeException -> String)) $ gtry $ do
+	ifaces <- liftM fst $ processModules silent fs ([Flag_Verbosity "0", Flag_NoWarnings, Flag_UseUnicode] ++ map Flag_OptGhc opts) []
+	return $ map interfaceDocs ifaces
 
 -- | Get docs for 'InstalledInterface'
 installedInterfaceDocs :: InstalledInterface -> (String, ModuleDocMap)
