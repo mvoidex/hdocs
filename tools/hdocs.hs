@@ -57,7 +57,7 @@ main = do
 
 		loadDocs :: String -> ExceptT String IO ModuleDocMap
 		loadDocs m
-			| takeExtension m == ".hs" = liftM snd $ readSource (optionGHC cfg) m
+			| takeExtension m == ".hs" = liftM snd $ ExceptT $ withGhc [] $ runExceptT $ readSourceGhc (optionGHC cfg) m
 			| otherwise = moduleDocs (optionGHC cfg) m
 
 	case cmds of

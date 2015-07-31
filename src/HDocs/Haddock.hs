@@ -2,7 +2,7 @@ module HDocs.Haddock (
 	-- * Documentation functions
 	readInstalledDocs,
 	readHaddock,
-	readSources, readSources_, readSource, readSourcesGhc,
+	readSources, readSources_, readSource, readSourcesGhc, readSourceGhc,
 
 	-- * Extract docs
 	installedInterfaceDocs, installedInterfacesDocs,
@@ -16,7 +16,8 @@ module HDocs.Haddock (
 	module HDocs.Base,
 
 	Ghc,
-	module Control.Monad.Except
+	module Control.Monad.Except,
+	withGhc
 	) where
 
 import Control.Applicative
@@ -69,6 +70,10 @@ readSourcesGhc :: [String] -> [FilePath] -> ExceptT String Ghc [(String, ModuleD
 readSourcesGhc opts fs = ExceptT $ liftM (left (show :: SomeException -> String)) $ gtry $ do
 	ifaces <- liftM fst $ processModules silent fs ([Flag_Verbosity "0", Flag_NoWarnings, Flag_UseUnicode] ++ map Flag_OptGhc opts) []
 	return $ map interfaceDocs ifaces
+
+-- | Read docs for haskell module
+readSourceGhc :: [String] -> FilePath -> ExceptT String Ghc (String, ModuleDocMap)
+readSourceGhc opts f = liftM listToMaybe (readSourcesGhc opts [f]) >>= maybe (throwError $ "Failed to load docs for " ++ f) return
 
 -- | Get docs for 'InstalledInterface'
 installedInterfaceDocs :: InstalledInterface -> (String, ModuleDocMap)
