@@ -10,6 +10,7 @@ import qualified Data.Map as M
 import Data.Monoid (Monoid(..))
 import qualified Data.Text as T (unpack, pack)
 import qualified Data.Text.Encoding as T (decodeUtf8)
+import Documentation.Haddock (Flag(Flag_OptGhc))
 
 import HDocs.Haddock
 import HDocs.Module
@@ -57,7 +58,7 @@ main = do
 
 		loadDocs :: String -> ExceptT String IO ModuleDocMap
 		loadDocs m
-			| takeExtension m == ".hs" = liftM snd $ ExceptT $ withGhc [] $ runExceptT $ readSourceGhc (optionGHC cfg) m
+			| takeExtension m == ".hs" = liftM snd $ ExceptT $ withGhc (map Flag_OptGhc $ optionGHC cfg) $ runExceptT $ readSourceGhc (optionGHC cfg) m
 			| otherwise = moduleDocs (optionGHC cfg) m
 
 	case cmds of
