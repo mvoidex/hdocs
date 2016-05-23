@@ -18,6 +18,8 @@ import qualified GhcMonad as GHC (liftIO)
 import Name (occNameString)
 import Packages
 
+import HDocs.Ghc.Compat
+
 -- | Documentation in module
 type ModuleDocMap = Map String (Doc String)
 
@@ -25,19 +27,21 @@ type ModuleDocMap = Map String (Doc String)
 withInitializedPackages :: [String] -> (DynFlags -> IO a) -> IO a
 withInitializedPackages ghcOpts cont = runGhc (Just libdir) $ do
 	fs <- getSessionDynFlags
-	(fs', _, _) <- parseDynamicFlags fs (map noLoc ghcOpts)
-	_ <- setSessionDynFlags fs'
-	(result, _) <- GHC.liftIO $ initPackages fs'
-	GHC.liftIO $ cont result
+	cleanupHandler fs $ do
+		(fs', _, _) <- parseDynamicFlags fs (map noLoc ghcOpts)
+		_ <- setSessionDynFlags fs'
+		(result, _) <- GHC.liftIO $ initPackages fs'
+		GHC.liftIO $ cont result
 
 -- | Config GHC session
 configSession :: [String] -> IO DynFlags
 configSession ghcOpts = runGhc (Just libdir) $ do
 	fs <- getSessionDynFlags
-	(fs', _, _) <- parseDynamicFlags fs (map noLoc ghcOpts)
-	_ <- setSessionDynFlags fs'
-	(result, _) <- GHC.liftIO $ initPackages fs'
-	return result
+	cleanupHandler fs $ do
+		(fs', _, _) <- parseDynamicFlags fs (map noLoc ghcOpts)
+		_ <- setSessionDynFlags fs'
+		(result, _) <- GHC.liftIO $ initPackages fs'
+		return result
 
 -- | Format documentation to plain text.
 formatDoc :: Doc String -> String

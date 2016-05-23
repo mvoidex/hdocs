@@ -34,12 +34,12 @@ import Documentation.Haddock.Types (_doc)
 
 import Exception (gtry)
 import GHC (Ghc)
-import DynFlags
 import Module
 import Name
 import PackageConfig
 
 import HDocs.Base
+import HDocs.Ghc.Compat
 
 -- | Read all installed docs
 readInstalledDocs :: [String] -> ExceptT String IO (Map String ModuleDocMap)
@@ -91,7 +91,7 @@ interfaceDocs = stringize . (ifaceMod &&& (fmap _doc . ifaceDocMap))
 haddockFiles :: [String] -> ExceptT String IO [FilePath]
 haddockFiles opts = ExceptT $ withInitializedPackages opts $ return . maybe
 	(Left "Package database empty")
-	(Right . concatMap haddockInterfaces . concatMap snd) .
+	(Right . concatMap haddockInterfaces) .
 	pkgDatabase
 
 -- | Read installed interface
