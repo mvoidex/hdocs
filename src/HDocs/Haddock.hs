@@ -91,7 +91,7 @@ interfaceDocs = stringize . (ifaceMod &&& (fmap _doc . ifaceDocMap))
 haddockFiles :: [String] -> ExceptT String IO [FilePath]
 haddockFiles opts = ExceptT $ withInitializedPackages opts $ return . maybe
 	(Left "Package database empty")
-	(Right . concatMap haddockInterfaces) .
+	(Right . concatMap haddockInterfaces . concatMap snd) .
 	pkgDatabase
 
 -- | Read installed interface

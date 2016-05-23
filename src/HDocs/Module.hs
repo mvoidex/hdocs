@@ -52,24 +52,24 @@ moduleDocs opts mname = ExceptT $ withInitializedPackages opts (runExceptT . mod
 		where
 			pkgs = filter exposed $ map snd $ lookupModuleInAllPackages d (mkModuleName mname)
 
-	namePackage :: Name -> PackageKey
-	namePackage = modulePackageKey . nameModule
+	namePackage :: Name -> UnitId
+	namePackage = moduleUnitId . nameModule
 
-	ifacePackageDeps :: InstalledInterface -> [PackageKey]
-	ifacePackageDeps i = (modulePackageKey $ instMod i) `delete` (nub . map namePackage . instExports $ i)
+	ifacePackageDeps :: InstalledInterface -> [UnitId]
+	ifacePackageDeps i = (moduleUnitId $ instMod i) `delete` (nub . map namePackage . instExports $ i)
 
 	ifaceDep :: InstalledInterface -> InstalledInterface -> Bool
 	ifaceDep i idep = instMod i /= instMod idep && instMod idep `elem` map nameModule (instExports i)
 
 	pkgId :: DynFlags -> PackageConfig -> String
-	pkgId d = showSDoc d . ppr . installedPackageId
+	pkgId d = showSDoc d . ppr . unitId
 
 -- | Load docs for all installed modules
 installedDocs :: [String] -> ExceptT String IO (Map String ModuleDocMap)
 installedDocs opts = ExceptT $ withInitializedPackages opts (runExceptT . installedDocs') where
 	installedDocs' :: DynFlags -> ExceptT String IO (Map String ModuleDocMap)
 	installedDocs' d = do
-		fs <- maybe (throwError "Package database empty") (return . concatMap haddockInterfaces) $ pkgDatabase d
+		fs <- maybe (throwError "Package database empty") (return . concatMap haddockInterfaces . concatMap snd) $ pkgDatabase d
 		ifaces <- liftM concat $ mapM ((`mplus` return []) . H.readInstalledInterfaces) fs
 		let
 			idocs = H.installedInterfacesDocs ifaces
