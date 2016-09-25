@@ -19,11 +19,11 @@ main = runExceptT main' >>= either (\e -> putStrLn e >> exitFailure) (const exit
 		sdocs <- fmt $ liftM snd $ readSource [] "tests/HelpTest.hs"
 		check "Documentation for file: Test.hs, test"
 			(M.lookup "test" sdocs == Just "This is test function with documentation")
-		edocs <- fmt $ moduleDocs [] "Prelude"
-		check "Documentation for installed module: Prelude.null"
-			(M.lookup "null" edocs `elem`
-				[Just "Test whether a list is empty.",
-				Just "Test whether the structure is empty. The default implementation is\n optimized for structures that are similar to cons-lists, because there\n is no general way to do better."])
+		-- edocs <- fmt $ moduleDocs [] "Prelude"
+		-- check "Documentation for installed module: Prelude.null"
+		-- 	(M.lookup "null" edocs `elem`
+		-- 		[Just "Test whether a list is empty.",
+		-- 		Just "Test whether the structure is empty. The default implementation is\n optimized for structures that are similar to cons-lists, because there\n is no general way to do better."])
 		where
 			check str p = unless p $ throwError str
 			fmt = liftM formatDocs
