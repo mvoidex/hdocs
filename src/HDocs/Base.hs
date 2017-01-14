@@ -47,7 +47,6 @@ configSession ghcOpts = runGhc (Just libdir) $ do
 formatDoc :: Doc String -> String
 formatDoc = trim . go where
 	go :: Doc String -> String
-	go DocEmpty = ""
 	go (DocAppend a b) = go a ++ go b
 	go (DocString str) = trimSpaces str
 	go (DocParagraph p) = go p ++ "\n"
@@ -64,10 +63,13 @@ formatDoc = trim . go where
 	go (DocCodeBlock block) = unlines (map ("    " ++) (lines (go block))) ++ "\n"
 	go (DocHyperlink (Hyperlink url label)) = maybe url (\l -> l ++ "[" ++ url ++ "]") label
 	go (DocPic pic) = show pic
+	go (DocMathInline m) = m
+	go (DocMathDisplay m) = m
 	go (DocAName name) = name
 	go (DocProperty prop) = prop
 	go (DocExamples exs) = unlines (map formatExample exs)
 	go (DocHeader h) = foldMap go h
+	go _ = ""
 
 	formatExample :: Example -> String
 	formatExample (Example expr result) = ">>> " ++ expr ++ "\n" ++ unlines result
