@@ -1,6 +1,6 @@
 module HDocs.Haddock (
 	-- * Documentation functions
-	readInstalledDocs,
+	readInstalledDocsF, readInstalledDocs,
 	readHaddock,
 	readSources, readSources_, readSource, readSourcesGhc, readSourceGhc,
 
@@ -9,7 +9,7 @@ module HDocs.Haddock (
 	interfaceDocs,	
 
 	-- * Utility functions
-	haddockFiles,
+	haddockFilesF, haddockFiles,
 	readInstalledInterfaces, readPackageInterfaces,
 	lookupDoc, lookupNameDoc,
 
@@ -32,6 +32,7 @@ import Distribution.Verbosity (silent)
 import Documentation.Haddock
 import Documentation.Haddock.Types (_doc)
 
+import DynFlags (DynFlags)
 import Exception (gtry)
 import GHC (Ghc)
 import Module
@@ -40,6 +41,12 @@ import PackageConfig
 
 import HDocs.Base
 import HDocs.Ghc.Compat
+
+-- | Read all installed docs
+readInstalledDocsF :: DynFlags -> ExceptT String IO (Map String ModuleDocMap)
+readInstalledDocsF df = do
+	fs <- haddockFilesF df
+	liftM M.unions $ forM fs $ \f -> (readHaddock f) `mplus` (return M.empty)
 
 -- | Read all installed docs
 readInstalledDocs :: [String] -> ExceptT String IO (Map String ModuleDocMap)
@@ -88,11 +95,15 @@ interfaceDocs :: Interface -> (String, ModuleDocMap)
 interfaceDocs = stringize . (ifaceMod &&& (fmap _doc . ifaceDocMap))
 
 -- | Get list of haddock files in package db
-haddockFiles :: [String] -> ExceptT String IO [FilePath]
-haddockFiles opts = ExceptT $ withInitializedPackages opts $ return . maybe
+haddockFilesF :: DynFlags -> ExceptT String IO [FilePath]
+haddockFilesF = ExceptT . return . maybe
 	(Left "Package database empty")
 	(Right . concatMap haddockInterfaces) .
 	pkgDatabase
+
+-- | Get list of haddock files in package db
+haddockFiles :: [String] -> ExceptT String IO [FilePath]
+haddockFiles opts = ExceptT $ withInitializedPackages opts (runExceptT . haddockFilesF)
 
 -- | Read installed interface
 readInstalledInterfaces :: FilePath -> ExceptT String IO [InstalledInterface]
