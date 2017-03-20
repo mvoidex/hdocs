@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 module HDocs.Base (
 	ModuleDocMap,
 	withInitializedPackages, configSession,
@@ -63,8 +65,10 @@ formatDoc = trim . go where
 	go (DocCodeBlock block) = unlines (map ("    " ++) (lines (go block))) ++ "\n"
 	go (DocHyperlink (Hyperlink url label)) = maybe url (\l -> l ++ "[" ++ url ++ "]") label
 	go (DocPic pic) = show pic
+#if MIN_VERSION_haddock_library(1,4,0)
 	go (DocMathInline m) = m
 	go (DocMathDisplay m) = m
+#endif
 	go (DocAName name) = name
 	go (DocProperty prop) = prop
 	go (DocExamples exs) = unlines (map formatExample exs)
