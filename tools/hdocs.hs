@@ -8,6 +8,7 @@ import Data.Aeson.Encode.Pretty (encodePretty)
 import Data.ByteString.Lazy (toStrict)
 import qualified Data.Map as M
 import Data.Monoid (Monoid(..))
+import Data.Semigroup (Semigroup(..))
 import qualified Data.Text as T (unpack, pack)
 import qualified Data.Text.Encoding as T (decodeUtf8)
 import Documentation.Haddock (Flag(Flag_OptGhc))
@@ -23,6 +24,9 @@ import System.IO
 data HDocsOptions = HDocsOptions {
 	optionPretty :: Bool,
 	optionGHC :: [String] }
+
+instance Semigroup HDocsOptions where
+	l <> r = HDocsOptions (optionPretty l || optionPretty r) (optionGHC l ++ optionGHC r)
 
 instance Monoid HDocsOptions where
 	mempty = HDocsOptions False []

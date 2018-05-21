@@ -34,7 +34,7 @@ type UnitId = Module.PackageKey
 #endif
 
 unitId :: GHC.PackageConfig -> UnitId
-#if __GLASGOW_HASKELL__ == 802
+#if __GLASGOW_HASKELL__ >= 802
 unitId = GHC.packageConfigId
 #elif __GLASGOW_HASKELL__ == 800
 unitId = GHC.unitId
