@@ -3,7 +3,11 @@ packages:
 - '.'
 resolver: lts-14.0
 extra-deps:
-- ../haddock-api-2.22.0
-- ../ghc-paths
+- git: https://github.com/mvoidex/haddock
+  commit: 0cce2dcd99b516ef420bc9788da325ac3bf3de0c
+  subdirs:
+    - haddock-api
+- git: https://github.com/mvoidex/ghc-paths
+  commit: 006a787dda37cad403307ffc1f484b59c763076e
 - haddock-library-1.7.0
 - Cabal-3.0.0.0
