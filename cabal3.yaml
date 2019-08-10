@@ -3,5 +3,7 @@ packages:
 - '.'
 resolver: lts-14.0
 extra-deps:
-- haddock-api-2.22.0
+- ../haddock-api-2.22.0
+- ../ghc-paths
 - haddock-library-1.7.0
+- Cabal-3.0.0.0

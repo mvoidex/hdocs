@@ -1,4 +1,4 @@
-resolver: nightly-2018-10-18
+resolver: nightly-2019-08-07
 extra-deps:
-- haddock-api-2.21.0
+- haddock-api-2.22.0
 - haddock-library-1.7.0

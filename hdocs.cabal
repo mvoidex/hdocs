@@ -1,5 +1,5 @@
 name:                hdocs
-version:             0.5.3.1
+version:             0.5.3.2
 synopsis:            Haskell docs tool
 description:
   Tool and library to get docs for installed packages and source files.
@@ -40,7 +40,7 @@ library
   if impl(ghc == 8.6.*)
     build-depends:
       ghc == 8.6.*,
-      haddock-api == 2.21.*,
+      haddock-api >= 2.21 && < 2.23,
       haddock-library == 1.7.*
   if impl(ghc >= 8.3) && impl(ghc < 8.6)
     build-depends:
