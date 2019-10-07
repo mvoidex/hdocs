@@ -5,7 +5,7 @@ env:
  - CABALVER=2.0 GHCVER=8.2.2
  - CABALVER=2.0 GHCVER=8.4.2
  - CABALVER=2.2 GHCVER=8.6.1
- - CABALVER=3.0 GHCVER=8.8.1
+ - CABALVER=3.0 GHCVER=8.8.1 NEW_CABAL=1 PREFIX=new-
 
 before_install:
  - travis_retry sudo add-apt-repository -y ppa:hvr/ghc
@@ -17,10 +17,9 @@ install:
  - cabal --version
  - echo "$(ghc --version)"
  - travis_retry cabal update
- - cabal install --only-dependencies --enable-tests
+ - if [ $NEW_CABAL ]; then cabal new-configure --enable-tests; cabal new-build --dependencies-only; else cabal install --only-dependencies --enable-tests; cabal configure --enable-tests; fi
 
 script:
- - cabal configure --enable-tests
- - cabal build
- - cabal test
- - cabal sdist
+ - cabal ${PREFIX}build
+ - cabal ${PREFIX}test
+ - cabal ${PREFIX}sdist
