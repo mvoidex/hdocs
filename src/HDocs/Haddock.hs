@@ -28,8 +28,7 @@ import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Maybe (listToMaybe)
 
-import Distribution.Verbosity (silent)
-import Documentation.Haddock
+import Documentation.Haddock hiding (readInterfaceFile)
 import Documentation.Haddock.Types (_doc)
 
 import DynFlags (DynFlags)
@@ -40,6 +39,7 @@ import Name
 import PackageConfig
 
 import HDocs.Base
+import HDocs.Compat
 import HDocs.Ghc.Compat
 
 -- | Read all installed docs
@@ -75,7 +75,7 @@ readSource opts f = liftM listToMaybe (readSources_ opts [f]) >>= maybe (throwEr
 -- | Read docs for source in Ghc monad
 readSourcesGhc :: [String] -> [FilePath] -> ExceptT String Ghc [(String, ModuleDocMap)]
 readSourcesGhc opts fs = ExceptT $ liftM (left (show :: SomeException -> String)) $ gtry $ do
-	ifaces <- liftM fst $ processModules silent fs ([Flag_Verbosity "0", Flag_NoWarnings, Flag_UseUnicode] ++ map Flag_OptGhc opts) []
+	ifaces <- liftM fst $ processModules minBound fs ([Flag_Verbosity "0", Flag_NoWarnings, Flag_UseUnicode] ++ map Flag_OptGhc opts) []
 	return $ map interfaceDocs ifaces
 
 -- | Read docs for haskell module
@@ -125,7 +125,7 @@ lookupNameDoc n = lookupDoc (moduleNameString $ moduleName $ nameModule n) (getO
 
 stringize :: (Module, Map Name (Doc Name)) -> (String, ModuleDocMap)
 stringize = moduleNameString . moduleName *** strDoc where
-	strDoc = M.mapKeys getOccString . M.map (fmap getOccString)
+	strDoc = M.mapKeys getOccString . M.map (mapDoc getOccString)
 
 liftError :: ExceptT String IO a -> ExceptT String IO a
 liftError = ExceptT . handle onErr . runExceptT where

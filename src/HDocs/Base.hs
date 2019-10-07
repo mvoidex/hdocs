@@ -8,7 +8,8 @@ module HDocs.Base (
 
 import Data.Char (isSpace)
 import Data.Map (Map)
-import Data.Foldable (foldMap)
+import Data.Maybe (fromMaybe, listToMaybe)
+import Data.Foldable (foldMap, toList)
 import qualified Data.Map as M
 
 import Documentation.Haddock
@@ -52,8 +53,9 @@ formatDoc = trim . go where
 	go (DocAppend a b) = go a ++ go b
 	go (DocString str) = trimSpaces str
 	go (DocParagraph p) = go p ++ "\n"
-	go (DocIdentifier i) = i
-	go (DocIdentifierUnchecked (mname, occname)) = moduleNameString mname ++ "." ++ occNameString occname
+	go (DocIdentifier i) = unwrap i
+	go (DocIdentifierUnchecked m) = moduleNameString mname ++ "." ++ occNameString occname where
+			(mname, occname) = unwrap m
 	go (DocModule m) = m
 	go (DocWarning w) = go w
 	go (DocEmphasis e) = "*" ++ go e ++ "*"
@@ -63,7 +65,12 @@ formatDoc = trim . go where
 	go (DocOrderedList i) = unlines (zipWith (\i' x -> show i' ++ ". " ++ go x) ([1..] :: [Integer]) i)
 	go (DocDefList xs) = unlines (map (\(i,x) -> go i ++ ". " ++ go x) xs)
 	go (DocCodeBlock block) = unlines (map ("    " ++) (lines (go block))) ++ "\n"
-	go (DocHyperlink (Hyperlink url label)) = maybe url (\l -> l ++ "[" ++ url ++ "]") label
+	go (DocHyperlink (Hyperlink url label)) = maybe url (\l -> showLabel l ++ "[" ++ url ++ "]") $ label where
+#if MIN_VERSION_haddock_library(1,8,0)
+			showLabel = go
+#else
+			showLabel = id
+#endif
 	go (DocPic pic) = show pic
 #if MIN_VERSION_haddock_library(1,4,0)
 	go (DocMathInline m) = m
@@ -86,6 +93,12 @@ formatDoc = trim . go where
 	trim :: String -> String
 	trim = p . p where
 		p = reverse . dropWhile isSpace
+
+#if MIN_VERSION_haddock_library(1,8,0)
+	unwrap = fromMaybe (error "toList on `Wrap` returns empty list") . listToMaybe . toList
+#else
+	unwrap = id
+#endif
 
 -- | Format docs to plain text
 formatDocs :: ModuleDocMap -> Map String String
