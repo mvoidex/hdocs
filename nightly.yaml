@@ -1,4 +1,4 @@
-resolver: nightly-2019-10-06
+resolver: nightly-2020-11-04
 extra-deps:
-- haddock-api-2.23.0
-- haddock-library-1.8.0
+- haddock-api-2.24.0
+compiler: ghc-8.10.1

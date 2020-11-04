@@ -1,7 +1,6 @@
 flags: {}
 packages:
 - '.'
-resolver: lts-14.7
+resolver: lts-16.20
 extra-deps:
-- haddock-api-2.22.0
-- haddock-library-1.7.0
+- haddock-api-2.23.1
