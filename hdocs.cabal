@@ -22,7 +22,7 @@ author:              Alexandr `Voidex` Ruchkin
 maintainer:          voidex@live.com
 category:            Development
 build-type:          Simple
-cabal-version:       >=1.8
+cabal-version:       >=1.10
 
 source-repository head
   type: git
